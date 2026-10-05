@@ -1,0 +1,8 @@
+{
+  "name": "autional-api",
+  "private": true,
+  "description": "api.autional.com — Vercel reverse-proxy entry for the .com backend",
+  "dependencies": {
+    "@vercel/config": "^0.7.2"
+  }
+}
