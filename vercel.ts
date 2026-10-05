@@ -20,12 +20,16 @@ if (!rawOrigin) {
 
 const ORIGIN = rawOrigin.replace(/\/+$/, '');
 
+/** 区域 issuer：边缘注入 X-Autional-Issuer（方案③）。 */
+const ISSUER = 'https://api.autional.com';
+const withIssuer = () => ({ requestHeaders: { 'X-Autional-Issuer': ISSUER } });
+
 /** 4 条 rewrite：把对外入口的路径原样转发到源站（无路径前缀）。 */
 export const config: VercelConfig = {
   rewrites: [
-    routes.rewrite('/bff/:path*', `${ORIGIN}/bff/:path*`),
-    routes.rewrite('/api/v1/:path*', `${ORIGIN}/api/v1/:path*`),
-    routes.rewrite('/oauth/:path*', `${ORIGIN}/oauth/:path*`),
-    routes.rewrite('/.well-known/:path*', `${ORIGIN}/.well-known/:path*`),
+    routes.rewrite('/bff/:path*', `${ORIGIN}/bff/:path*`, withIssuer),
+    routes.rewrite('/api/v1/:path*', `${ORIGIN}/api/v1/:path*`, withIssuer),
+    routes.rewrite('/oauth/:path*', `${ORIGIN}/oauth/:path*`, withIssuer),
+    routes.rewrite('/.well-known/:path*', `${ORIGIN}/.well-known/:path*`, withIssuer),
   ],
 };
