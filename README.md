@@ -21,7 +21,7 @@
 
 | 文件 | 说明 |
 |---|---|
-| `vercel.ts` | 4 条 rewrite：`/bff`、`/api/v1`、`/oauth`、`/.well-known` -> `${API_ORIGIN}/...` |
+| `vercel.ts` | 6 条 rewrite：`/bff`、`/api/v1`、`/oauth`、`/.well-known` -> `${API_ORIGIN}/...` |
 | `package.json` | 仅依赖 `@vercel/config` |
 | `public/index.html` | 根路径占位页（`noindex`） |
 | `LICENSE` | AGPL-3.0 |
@@ -37,3 +37,11 @@
 未设置时 `vercel.ts` **故意抛错**（fail-closed），构建失败。
 
 > ⚠️ `vercel.json` 不支持环境变量插值，故用 Vercel 官方 `vercel.ts`（build-time 动态配置）。二者只能存在一个。
+
+## per-tenant discovery rewrite 约定（2026-10-06）
+
+- 形如 `/<slug>/.well-known/<path>` 的转发，**不要**用 path-to-regexp 的「首段动态参数 + `:path*`」写法
+  （`routes.rewrite('/:slug/.well-known/:path*', ...)`）——**本环境实测 Vercel 不匹配**，一律 404。
+- **正确写法 = 正则源 + 反向引用**：
+  `routes.rewrite('^/([^/]+)/[.]well-known/(.*)$', `${ORIGIN}/$1/.well-known/$2`)`
+- 根级协议坐标仍用普通前缀匹配：`routes.rewrite('/.well-known/:path*', ...)`。
