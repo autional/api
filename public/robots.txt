@@ -1,3 +1,3 @@
-# api.autional.com — 后端 API 入口（无公开页面）；落地页已 noindex，这里保持可抓取。
+# 后端 API 入口（无公开页面）；落地页已 noindex，这里保持可抓取。
 User-agent: *
 Allow: /
