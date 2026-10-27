@@ -22,7 +22,7 @@
 
 | 文件 | 说明 |
 |---|---|
-| `vercel.ts` | 6 条 rewrite：`/bff`、`/api/v1`、`/oauth`、`/ready`、`/.well-known` -> `${API_ORIGIN}/...` |
+| `vercel.ts` | 7 条 rewrite：`/bff`、`/api/v1`、`/oauth`、`/ready`、`/health`、`/.well-known`、`/<slug>/.well-known` -> `${API_ORIGIN}/...` |
 | `package.json` | 仅依赖 `@vercel/config` |
 | `public/index.html` | 根路径占位页（`noindex`） |
 | `LICENSE` | AGPL-3.0 |
@@ -43,6 +43,7 @@
 ## 约定
 
 - `/ready`：status 站网关健康聚合探针入口（站点侧 rewrite 指向本区域 api 入口的 `/ready`；缺此条则打回 Vercel 404 —— status 内容审计 V-01 的代理断点）。
+- `/health`：liveness 探针入口。**两区必须同存**——`.cn` 侧由香港入口 nginx 白名单提供，`.com` 侧由本条 rewrite 提供；任何一边缺都是契约不对称。
 - 改动本仓 = 改本区域 `api.autional.<tld>` 的代理行为；改完 push 即自动部署（两区域项目各自监听本仓 main）。
 
 ## per-tenant discovery rewrite 约定（2026-10-06）

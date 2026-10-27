@@ -29,20 +29,44 @@ if (!rawIssuer) {
 }
 
 const ISSUER = rawIssuer.replace(/\/+$/, '');
-const withIssuer = () => ({ requestHeaders: { 'X-Autional-Issuer': ISSUER } });
+
+/** 边缘共享密钥（2026-10-27）：用于让香港入口区分「Vercel 回源」与「公网直连」。 */
+const rawEdgeToken = process.env.EDGE_TOKEN;
+
+if (!rawEdgeToken) {
+  throw new Error(
+    '[api] 缺少环境变量 EDGE_TOKEN（Vercel 项目设置里配置后重新部署）',
+  );
+}
+
+const EDGE_TOKEN = rawEdgeToken.trim();
 
 /**
- * 6 条 rewrite：把对外入口的路径原样转发到源站（无路径前缀）。
+ * 区域 issuer + 边缘密钥：香港入口仅在 X-Edge-Token 匹配时才采信 XFF 与 issuer，
+ * 不匹配的一律剥掉（防公网直连伪造来源 IP / 伪造 issuer）。
+ */
+const edgeHeaders = () => ({
+  requestHeaders: { 'X-Autional-Issuer': ISSUER, 'X-Edge-Token': EDGE_TOKEN },
+});
+
+/** 仅边缘密钥（per-tenant discovery 不用区域 issuer，但仍需标识回源身份）。 */
+const edgeOnly = () => ({ requestHeaders: { 'X-Edge-Token': EDGE_TOKEN } });
+
+/**
+ * 7 条 rewrite：把对外入口的路径原样转发到源站（无路径前缀）。
  * `/ready`：status 站网关健康聚合探针（站点侧 rewrite 指到本区域 api 入口 `/ready`，
  * 缺此条则打回 Vercel 404 —— status 内容审计 V-01 的代理断点）。
+ * `/health`：liveness 探针。与 `api.autional.cn` 香港入口的白名单对齐——
+ * 两区对外契约必须同名同语义，不接受「一边有一边没有」的不对称。
  */
 export const config: VercelConfig = {
   rewrites: [
-    routes.rewrite('/bff/:path*', `${ORIGIN}/bff/:path*`, withIssuer),
-    routes.rewrite('/api/v1/:path*', `${ORIGIN}/api/v1/:path*`, withIssuer),
-    routes.rewrite('/oauth/:path*', `${ORIGIN}/oauth/:path*`, withIssuer),
-    routes.rewrite('/ready', `${ORIGIN}/ready`, withIssuer),
-    routes.rewrite('/.well-known/:path*', `${ORIGIN}/.well-known/:path*`, withIssuer),
-    routes.rewrite('^/([^/]+)/[.]well-known/(.*)$', `${ORIGIN}/$1/.well-known/$2`),
+    routes.rewrite('/bff/:path*', `${ORIGIN}/bff/:path*`, edgeHeaders),
+    routes.rewrite('/api/v1/:path*', `${ORIGIN}/api/v1/:path*`, edgeHeaders),
+    routes.rewrite('/oauth/:path*', `${ORIGIN}/oauth/:path*`, edgeHeaders),
+    routes.rewrite('/ready', `${ORIGIN}/ready`, edgeHeaders),
+    routes.rewrite('/health', `${ORIGIN}/health`, edgeHeaders),
+    routes.rewrite('/.well-known/:path*', `${ORIGIN}/.well-known/:path*`, edgeHeaders),
+    routes.rewrite('^/([^/]+)/[.]well-known/(.*)$', `${ORIGIN}/$1/.well-known/$2`, edgeOnly),
   ],
 };
