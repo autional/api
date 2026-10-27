@@ -49,8 +49,8 @@ const edgeHeaders = () => ({
   requestHeaders: { 'X-Autional-Issuer': ISSUER, 'X-Edge-Token': EDGE_TOKEN },
 });
 
-/** 仅边缘密钥（per-tenant discovery 不用区域 issuer，但仍需标识回源身份）。 */
-const edgeOnly = () => ({ requestHeaders: { 'X-Edge-Token': EDGE_TOKEN } });
+// 注：per-tenant discovery（正则 rewrite）目前不支持附带 requestHeaders（实测加上即 404），
+// 故该条不带 X-Edge-Token；香港入口对它按「直连」处理（不采信 XFF / 不注入 issuer）。
 
 /**
  * 7 条 rewrite：把对外入口的路径原样转发到源站（无路径前缀）。
@@ -67,6 +67,6 @@ export const config: VercelConfig = {
     routes.rewrite('/ready', `${ORIGIN}/ready`, edgeHeaders),
     routes.rewrite('/health', `${ORIGIN}/health`, edgeHeaders),
     routes.rewrite('/.well-known/:path*', `${ORIGIN}/.well-known/:path*`, edgeHeaders),
-    routes.rewrite('^/([^/]+)/[.]well-known/(.*)$', `${ORIGIN}/$1/.well-known/$2`, edgeOnly),
+    routes.rewrite('^/([^/]+)/[.]well-known/(.*)$', `${ORIGIN}/$1/.well-known/$2`),
   ],
 };
